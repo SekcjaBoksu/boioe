@@ -61,6 +61,18 @@ export function createGame({
     // Enemy projectiles
     let enemyProjectiles = [];
 
+    function shadeColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        let r = (num >> 16) + amt;
+        let g = ((num >> 8) & 0x00ff) + amt;
+        let b = (num & 0x0000ff) + amt;
+        r = Math.max(Math.min(255, r), 0);
+        g = Math.max(Math.min(255, g), 0);
+        b = Math.max(Math.min(255, b), 0);
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    }
+
     // Coins/Helmets
     let helmets = [];
     
@@ -494,19 +506,24 @@ export function createGame({
     
     // Draw enemy projectile
     function drawEnemyProjectile(proj) {
-        ctx.fillStyle = '#9b59b6';
-        ctx.strokeStyle = '#6C3483';
+        const baseColor = proj.color || '#9b59b6';
+        const strokeColor = proj.color ? shadeColor(proj.color, -25) : '#6C3483';
+        const innerColor = proj.color ? shadeColor(proj.color, 40) : '#BB8FCE';
+        const radius = proj.radius ?? 6;
+        
+        ctx.fillStyle = baseColor;
+        ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 2;
         
         ctx.beginPath();
-        ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
+        ctx.arc(proj.x, proj.y, radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         
         // Inner glow
-        ctx.fillStyle = '#BB8FCE';
+        ctx.fillStyle = innerColor;
         ctx.beginPath();
-        ctx.arc(proj.x - 2, proj.y - 2, 3, 0, Math.PI * 2);
+        ctx.arc(proj.x - radius * 0.33, proj.y - radius * 0.33, radius * 0.5, 0, Math.PI * 2);
         ctx.fill();
     }
 
@@ -612,7 +629,7 @@ export function createGame({
             
         } else if (enemy.type === 'speeder') {
             // SPEEDER - szybki zielony przeciwnik
-            
+        
             // Energia/aura wokół speedera
             const pulseSize = Math.sin(Date.now() / 100) * 3;
             ctx.strokeStyle = 'rgba(46, 204, 113, 0.5)';
@@ -1148,6 +1165,19 @@ export function createGame({
         enemyProjectiles.forEach((proj, index) => {
             proj.x += proj.vx;
             proj.y += proj.vy;
+
+            if (proj.maxDistance !== undefined) {
+                const stepDistance = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy);
+                proj.distanceTraveled = (proj.distanceTraveled || 0) + stepDistance;
+                const lifeRatio = Math.max(0, 1 - (proj.distanceTraveled / proj.maxDistance));
+                if (proj.radius !== undefined) {
+                    proj.radius = Math.max(2, (proj.baseRadius || proj.radius) * lifeRatio);
+                }
+                if (proj.distanceTraveled >= proj.maxDistance) {
+                    enemyProjectiles.splice(index, 1);
+                    return;
+                }
+            }
             
             // Check collision with player
             const dist = Math.sqrt(
@@ -1216,7 +1246,11 @@ export function createGame({
                 type: 'shooter',
                 hitFlash: 0,
                 shootTimer: 0,
-                shootCooldown: 120 // Strzela co 2 sekundy
+                shootCooldown: 90, // czas między seriami
+                burstShotsRemaining: 0,
+                burstDelayTimer: 0,
+                burstSpacing: 8,
+                burstCount: 3
             });
         }
         // 10% szansa na szybkiego zielonego przeciwnika
@@ -1241,7 +1275,9 @@ export function createGame({
                 health: 3,
                 color: '#e74c3c',
                 type: 'fly',
-                hitFlash: 0
+                hitFlash: 0,
+                shootTimer: Math.floor(Math.random() * 60),
+                shootCooldown: 120 + Math.floor(Math.random() * 60)
             });
         }
     }
@@ -1271,28 +1307,35 @@ export function createGame({
             if (enemy.type === 'shooter') {
                 enemy.shootTimer++;
                 
-                // Shoot at player
-                if (enemy.shootTimer >= enemy.shootCooldown) {
-                    enemy.shootTimer = 0;
-                    
-                    // Calculate direction to player
-                    const dx = player.x - enemy.x;
-                    const dy = player.y - enemy.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist > 0) {
-                        const speed = 4;
-                        enemyProjectiles.push({
-                            x: enemy.x,
-                            y: enemy.y,
-                            vx: (dx / dist) * speed,
-                            vy: (dy / dist) * speed,
-                            damage: 1
-                        });
+                if (enemy.burstShotsRemaining > 0) {
+                    enemy.burstDelayTimer--;
+                    if (enemy.burstDelayTimer <= 0) {
+                        const dx = player.x - enemy.x;
+                        const dy = player.y - enemy.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
                         
-                        // Visual effect
-                        createHitParticles(enemy.x, enemy.y, '#9b59b6');
+                        if (dist > 0) {
+                            const speed = 4.5;
+                            enemyProjectiles.push({
+                                x: enemy.x,
+                                y: enemy.y,
+                                vx: (dx / dist) * speed,
+                                vy: (dy / dist) * speed,
+                                damage: 1,
+                                radius: 6,
+                                baseRadius: 6
+                            });
+                            
+                            createHitParticles(enemy.x, enemy.y, '#9b59b6');
+                        }
+                        
+                        enemy.burstShotsRemaining--;
+                        enemy.burstDelayTimer = enemy.burstSpacing;
                     }
+                } else if (enemy.shootTimer >= enemy.shootCooldown) {
+                    enemy.shootTimer = 0;
+                    enemy.burstShotsRemaining = enemy.burstCount;
+                    enemy.burstDelayTimer = 0;
                 }
                 
                 // Slower movement, try to keep distance
@@ -1321,6 +1364,32 @@ export function createGame({
                 if (dist > 0) {
                     enemy.x += (dx / dist) * enemy.speed;
                     enemy.y += (dy / dist) * enemy.speed;
+                }
+
+                if (enemy.type === 'fly') {
+                    enemy.shootTimer++;
+                    if (enemy.shootTimer >= enemy.shootCooldown) {
+                        enemy.shootTimer = 0;
+                        enemy.shootCooldown = 120 + Math.floor(Math.random() * 60);
+
+                        if (dist > 0) {
+                            const speed = 3.2;
+                            enemyProjectiles.push({
+                                x: enemy.x,
+                                y: enemy.y,
+                                vx: (dx / dist) * speed,
+                                vy: (dy / dist) * speed,
+                                damage: 1,
+                                color: '#e74c3c',
+                                maxDistance: 660,
+                                distanceTraveled: 0,
+                                radius: 6,
+                                baseRadius: 6
+                            });
+
+                            createHitParticles(enemy.x, enemy.y, '#e74c3c');
+                        }
+                    }
                 }
             }
             
