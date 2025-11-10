@@ -1,0 +1,2 @@
+# boioe
+simple browser game
