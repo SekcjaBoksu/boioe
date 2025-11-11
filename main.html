@@ -11,7 +11,7 @@
 <body>
     <div class="game-root">
         <canvas id="gameCanvas" width="600" height="500"></canvas>
-
+        
         <div class="hud">
             <div class="hud-item">
                 <div class="hearts" id="hearts"></div>
@@ -32,25 +32,25 @@
                 <p class="menu-subtitle">OPEN EXPERIENCE EDITION</p>
                 <p class="menu-text">Walcz z wrogami i bij rekord!</p>
                 <div class="menu-controls">
-                    <h3>⌨️ STEROWANIE</h3>
+            <h3>⌨️ STEROWANIE</h3>
                     <p>WASD - Ruch gracza</p>
                     <p>Strzałki / IJKL - Strzelanie</p>
-                    <p>Zabijaj przeciwników i zbieraj kaski! 🪖</p>
-                </div>
+            <p>Zabijaj przeciwników i zbieraj kaski! 🪖</p>
+        </div>
                 <p class="menu-highscore">Najlepszy wynik: <span id="highScoreValue">0</span> zabójstw</p>
                 <button class="btn" id="menuStartButton">ROZPOCZNIJ GRĘ</button>
-            </div>
-        </div>
+    </div>
+    </div>
 
         <div class="overlay overlay-gameover hidden" id="gameOverOverlay">
             <div class="menu-card">
-                <h2>💀 GAME OVER!</h2>
+        <h2>💀 GAME OVER!</h2>
                 <p>Zabiłeś: <strong id="finalKills">0</strong> wrogów</p>
                 <p>Zebrałeś: <strong id="finalCoins">0</strong> monet</p>
                 <p>Najlepszy wynik: <strong id="finalHighScore">0</strong></p>
                 <button class="btn" id="restartButton">ZAGRAJ PONOWNIE</button>
             </div>
-        </div>
+    </div>
 
         <div class="overlay overlay-countdown hidden" id="countdownOverlay">
             <div class="countdown-value" id="countdownValue">3</div>

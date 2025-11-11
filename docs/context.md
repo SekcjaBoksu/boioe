@@ -27,7 +27,7 @@
 3. `gameOver()` zatrzymuje pętlę i przekazuje statystyki do kontrolera menu. Menu aktualizuje high-score, pokazuje ekran końcowy i umożliwia kolejny start (z odliczaniem).
 
 ## Kluczowe mechaniki
-- **Power-upy**: AK-47 (szybszy ogień), Pentagram (tryb berserk), Homing (pociski samonaprowadzające).
+- **Power-upy**: AK-47 (szybszy ogień), Pentagram (tryb berserk), Homing (pociski samonaprowadzające), Speed (przyspieszenie ruchu + przemiana mimiki).
 - **Combo**: utrzymuj tempo zabijania, aby zwiększać mnożnik monet i efekty wizualne.
 - **Przeciwnicy**: kilka typów (standard, szybki, strzelający) z różnymi zachowaniami.
 - **Efekty wizualne**: cząsteczki, shake ekranu, błyski, wskaźnik nagrzewania broni.

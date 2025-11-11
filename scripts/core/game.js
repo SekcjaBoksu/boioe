@@ -15,6 +15,8 @@ export function createGame({
     const gameOverHandler = typeof onGameOver === 'function' ? onGameOver : () => {};
     const BASE_CANVAS_WIDTH = canvas.width || 600;
     const BASE_CANVAS_HEIGHT = canvas.height || 500;
+    const BASE_PLAYER_SPEED = 3;
+    const SPEED_MULTIPLIER = 1.6;
 
     // Game state
     let gameRunning = false;
@@ -26,7 +28,7 @@ export function createGame({
         x: canvas.width / 2,
         y: canvas.height / 2,
         radius: 18,
-        speed: 3,
+        speed: BASE_PLAYER_SPEED,
         health: 6,
         maxHealth: 6,
         color: '#667eea',
@@ -84,6 +86,8 @@ export function createGame({
     let pentagramTimer = 0;
     let homingActive = false;
     let homingTimer = 0;
+    let speedActive = false;
+    let speedTimer = 0;
     
     // Dopamine mechanics
     let comboCount = 0;
@@ -437,7 +441,17 @@ export function createGame({
         ctx.save();
         
         // Glow effect
-        ctx.shadowColor = powerup.type === 'ak47' ? '#FFD700' : '#8B0000';
+        if (powerup.type === 'ak47') {
+            ctx.shadowColor = '#FFD700';
+        } else if (powerup.type === 'pentagram') {
+            ctx.shadowColor = '#8B0000';
+        } else if (powerup.type === 'homing') {
+            ctx.shadowColor = '#00FF00';
+        } else if (powerup.type === 'speed') {
+            ctx.shadowColor = '#FFE066';
+        } else {
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        }
         ctx.shadowBlur = 20;
         
         if (powerup.type === 'ak47') {
@@ -553,6 +567,35 @@ export function createGame({
             ctx.font = 'bold 10px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('HOMING', x, actualY + 35);
+        } else if (powerup.type === 'speed') {
+            const size = 24;
+            const rotation = Math.sin(Date.now() / 200) * 0.2;
+
+            ctx.translate(x, actualY);
+            ctx.rotate(rotation);
+
+            ctx.fillStyle = '#FFE066';
+            ctx.strokeStyle = '#FFB703';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.25, -size * 0.45);
+            ctx.lineTo(size * 0.1, -size * 0.05);
+            ctx.lineTo(-size * 0.05, -size * 0.05);
+            ctx.lineTo(size * 0.25, size * 0.5);
+            ctx.lineTo(-size * 0.1, size * 0.1);
+            ctx.lineTo(size * 0.05, size * 0.1);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.rotate(-rotation);
+            ctx.translate(-x, -actualY);
+
+            ctx.shadowBlur = 6;
+            ctx.fillStyle = '#FFE066';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SPEED', x, actualY + 32);
         }
         
         ctx.restore();
@@ -895,13 +938,15 @@ export function createGame({
                         
                         // Speeders drop powerups!
                         if (enemy.type === 'speeder') {
-                            const powerupType = Math.random() < 0.5 ? 'ak47' : 'pentagram';
+                            const dropRand = Math.random();
+                            const powerupType = dropRand < 0.33 ? 'ak47' : dropRand < 0.66 ? 'pentagram' : 'speed';
                             powerups.push({
                                 x: enemy.x,
                                 y: enemy.y,
                                 type: powerupType
                             });
-                            createTextPopup(enemy.x, enemy.y + 20, 'POWERUP!', '#00FF00', 18);
+                            const popupText = powerupType === 'speed' ? 'SPEED BOOST!' : 'POWERUP!';
+                            createTextPopup(enemy.x, enemy.y + 20, popupText, '#00FF00', 18);
                         }
                         // Shooters drop homing missiles!
                         else if (enemy.type === 'shooter') {
@@ -985,6 +1030,14 @@ export function createGame({
                 homingActive = false;
             }
         }
+
+        if (speedActive) {
+            speedTimer--;
+            if (speedTimer <= 0) {
+                speedActive = false;
+                player.speed = BASE_PLAYER_SPEED;
+            }
+        }
         
         // Combo timer decay
         if (comboTimer > 0) {
@@ -1042,6 +1095,13 @@ export function createGame({
                     createTextPopup(powerup.x, powerup.y, '🎯 HOMING!', '#00FF00', 25);
                     screenShakeIntensity = 10;
                     flashTimer = 15;
+                } else if (powerup.type === 'speed') {
+                    speedActive = true;
+                    speedTimer = 600; // 10 seconds
+                    player.speed = BASE_PLAYER_SPEED * SPEED_MULTIPLIER;
+                    createHitParticles(powerup.x, powerup.y, '#FFD700');
+                    createTextPopup(powerup.x, powerup.y, '⚡ SPEED!', '#FFD700', 25);
+                    screenShakeIntensity = 6;
                 }
                 powerups.splice(index, 1);
             }
@@ -1077,7 +1137,7 @@ export function createGame({
         enemyProjectiles.forEach(proj => drawEnemyProjectile(ctx, proj));
         projectiles.forEach(proj => drawProjectile(ctx, proj, { pentagramActive }));
         enemies.forEach(enemy => drawEnemy(enemy));
-        drawPlayer(ctx, canvas, player, { pentagramActive });
+        drawPlayer(ctx, canvas, player, { pentagramActive, speedActive });
         
         // Draw hitmarkers on top of everything
         hitmarkers.forEach(hitmarker => drawHitmarker(hitmarker));
@@ -1256,6 +1316,7 @@ export function createGame({
     function resetGameState() {
         player.x = canvas.width / 2;
         player.y = canvas.height / 2;
+        player.speed = BASE_PLAYER_SPEED;
         player.health = player.maxHealth;
         player.invulnerable = false;
         player.invulnerableTime = 0;
@@ -1278,6 +1339,8 @@ export function createGame({
         pentagramTimer = 0;
         homingActive = false;
         homingTimer = 0;
+        speedActive = false;
+        speedTimer = 0;
         
         comboCount = 0;
         comboTimer = 0;

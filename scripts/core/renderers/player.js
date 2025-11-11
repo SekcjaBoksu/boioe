@@ -1,5 +1,5 @@
 export function drawPlayer(ctx, canvas, player, options = {}) {
-    const { pentagramActive = false } = options;
+    const { pentagramActive = false, speedActive = false } = options;
 
     ctx.save();
 
@@ -81,6 +81,7 @@ export function drawPlayer(ctx, canvas, player, options = {}) {
 
     const eyeColor = pentagramActive ? '#FFD700' : 'white';
     const pupilColor = pentagramActive ? '#FF0000' : 'black';
+    const pupilRadius = (speedActive ? 4 : 3) * sizeMultiplier;
 
     ctx.fillStyle = eyeColor;
     ctx.beginPath();
@@ -90,19 +91,42 @@ export function drawPlayer(ctx, canvas, player, options = {}) {
 
     ctx.fillStyle = pupilColor;
     ctx.beginPath();
-    ctx.arc(player.x - 6 * sizeMultiplier, player.y - 4, 3 * sizeMultiplier, 0, Math.PI * 2);
-    ctx.arc(player.x + 6 * sizeMultiplier, player.y - 4, 3 * sizeMultiplier, 0, Math.PI * 2);
+    ctx.arc(player.x - 6 * sizeMultiplier, player.y - 4, pupilRadius, 0, Math.PI * 2);
+    ctx.arc(player.x + 6 * sizeMultiplier, player.y - 4, pupilRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = pupilColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (pentagramActive) {
-        ctx.arc(player.x, player.y + 4, 8 * sizeMultiplier, 0.2, Math.PI - 0.2);
+    if (speedActive && !pentagramActive) {
+        const mouthWidth = 7 * sizeMultiplier;
+        const mouthHeight = 4 * sizeMultiplier;
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(player.x, player.y + 6, mouthWidth, mouthHeight, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(player.x - mouthWidth, player.y + 6);
+        ctx.lineTo(player.x + mouthWidth, player.y + 6);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y + 6 - mouthHeight);
+        ctx.lineTo(player.x, player.y + 6 + mouthHeight);
+        ctx.stroke();
     } else {
-        ctx.arc(player.x, player.y + 4, 6, 0, Math.PI);
+        ctx.strokeStyle = pupilColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (pentagramActive) {
+            ctx.arc(player.x, player.y + 4, 8 * sizeMultiplier, 0.2, Math.PI - 0.2);
+        } else {
+            ctx.arc(player.x, player.y + 4, 6, 0, Math.PI);
+        }
+        ctx.stroke();
     }
-    ctx.stroke();
 
     if (pentagramActive) {
         ctx.fillStyle = '#8B0000';
