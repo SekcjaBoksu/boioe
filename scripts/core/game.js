@@ -1,3 +1,6 @@
+import { drawPlayer } from './renderers/player.js';
+import { drawProjectile, drawEnemyProjectile } from './renderers/projectiles.js';
+
 export function createGame({
     canvas,
     heartsContainer,
@@ -60,18 +63,6 @@ export function createGame({
     
     // Enemy projectiles
     let enemyProjectiles = [];
-
-    function shadeColor(color, percent) {
-        const num = parseInt(color.replace('#', ''), 16);
-        const amt = Math.round(2.55 * percent);
-        let r = (num >> 16) + amt;
-        let g = ((num >> 8) & 0x00ff) + amt;
-        let b = (num & 0x0000ff) + amt;
-        r = Math.max(Math.min(255, r), 0);
-        g = Math.max(Math.min(255, g), 0);
-        b = Math.max(Math.min(255, b), 0);
-        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-    }
 
     // Coins/Helmets
     let helmets = [];
@@ -268,264 +259,6 @@ export function createGame({
         }
     }
 
-    // Draw player
-    function drawPlayer() {
-        ctx.save();
-        
-        // Flashing when invulnerable
-        if (player.invulnerable && Math.floor(Date.now() / 100) % 2 === 0) {
-            ctx.globalAlpha = 0.5;
-        }
-        
-        // Pentagram effect
-        if (pentagramActive) {
-            // Red demonic aura
-            ctx.shadowColor = '#FF0000';
-            ctx.shadowBlur = 30;
-            
-            // Particles around player
-            for (let i = 0; i < 3; i++) {
-                const angle = (Date.now() / 500 + i * Math.PI * 2 / 3);
-                const distance = 25 + Math.sin(Date.now() / 200) * 5;
-                const px = player.x + Math.cos(angle) * distance;
-                const py = player.y + Math.sin(angle) * distance;
-                
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-                ctx.beginPath();
-                ctx.arc(px, py, 4, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        
-        // Walking animation
-        const walkCycle = Math.sin(Date.now() / 100) * 3;
-        
-        // Size multiplier for pentagram
-        const sizeMultiplier = pentagramActive ? 1.3 : 1;
-        const actualRadius = player.radius * sizeMultiplier;
-        
-        // Player color based on pentagram
-        const playerColor = pentagramActive ? '#8B0000' : player.color;
-        const accentColor = pentagramActive ? '#FF0000' : '#4A5FC1';
-        
-        // Legs
-        ctx.fillStyle = pentagramActive ? '#6B0000' : '#4A5FC1';
-        ctx.strokeStyle = pentagramActive ? '#8B0000' : '#2c3e80';
-        ctx.lineWidth = 2;
-        
-        // Left leg
-        ctx.beginPath();
-        ctx.ellipse(player.x - 6 * sizeMultiplier, player.y + actualRadius - 5 + walkCycle, 4 * sizeMultiplier, 10 * sizeMultiplier, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        
-        // Right leg
-        ctx.beginPath();
-        ctx.ellipse(player.x + 6 * sizeMultiplier, player.y + actualRadius - 5 - walkCycle, 4 * sizeMultiplier, 10 * sizeMultiplier, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        
-        // Body (circle with gradient)
-        const gradient = ctx.createRadialGradient(
-            player.x - 5, player.y - 5, 3,
-            player.x, player.y, actualRadius
-        );
-        if (pentagramActive) {
-            gradient.addColorStop(0, '#C41E3A');
-            gradient.addColorStop(1, playerColor);
-        } else {
-            gradient.addColorStop(0, '#8B9FEE');
-            gradient.addColorStop(1, playerColor);
-        }
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, actualRadius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Border
-        ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        
-        // Arms
-        ctx.fillStyle = pentagramActive ? '#8B0000' : '#667eea';
-        ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 2;
-        
-        // Left arm
-        ctx.beginPath();
-        ctx.ellipse(player.x - actualRadius + 2, player.y + 5 - walkCycle, 6 * sizeMultiplier, 4 * sizeMultiplier, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        
-        // Right arm
-        ctx.beginPath();
-        ctx.ellipse(player.x + actualRadius - 2, player.y + 5 + walkCycle, 6 * sizeMultiplier, 4 * sizeMultiplier, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        
-        // Eyes
-        const eyeColor = pentagramActive ? '#FFD700' : 'white';
-        const pupilColor = pentagramActive ? '#FF0000' : 'black';
-        
-        ctx.fillStyle = eyeColor;
-        ctx.beginPath();
-        ctx.arc(player.x - 6 * sizeMultiplier, player.y - 4, 5 * sizeMultiplier, 0, Math.PI * 2);
-        ctx.arc(player.x + 6 * sizeMultiplier, player.y - 4, 5 * sizeMultiplier, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Pupils
-        ctx.fillStyle = pupilColor;
-        ctx.beginPath();
-        ctx.arc(player.x - 6 * sizeMultiplier, player.y - 4, 3 * sizeMultiplier, 0, Math.PI * 2);
-        ctx.arc(player.x + 6 * sizeMultiplier, player.y - 4, 3 * sizeMultiplier, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Mouth (evil grin when pentagram active)
-        ctx.strokeStyle = pupilColor;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        if (pentagramActive) {
-            // Evil grin
-            ctx.arc(player.x, player.y + 4, 8 * sizeMultiplier, 0.2, Math.PI - 0.2);
-        } else {
-            // Normal smile
-            ctx.arc(player.x, player.y + 4, 6, 0, Math.PI);
-        }
-        ctx.stroke();
-        
-        // Horns when pentagram active
-        if (pentagramActive) {
-            ctx.fillStyle = '#8B0000';
-            ctx.strokeStyle = '#6B0000';
-            ctx.lineWidth = 2;
-            
-            // Left horn
-            ctx.beginPath();
-            ctx.moveTo(player.x - 12, player.y - actualRadius + 5);
-            ctx.quadraticCurveTo(player.x - 15, player.y - actualRadius - 5, player.x - 10, player.y - actualRadius - 10);
-            ctx.lineTo(player.x - 8, player.y - actualRadius - 8);
-            ctx.quadraticCurveTo(player.x - 12, player.y - actualRadius - 3, player.x - 10, player.y - actualRadius + 5);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            // Right horn
-            ctx.beginPath();
-            ctx.moveTo(player.x + 12, player.y - actualRadius + 5);
-            ctx.quadraticCurveTo(player.x + 15, player.y - actualRadius - 5, player.x + 10, player.y - actualRadius - 10);
-            ctx.lineTo(player.x + 8, player.y - actualRadius - 8);
-            ctx.quadraticCurveTo(player.x + 12, player.y - actualRadius - 3, player.x + 10, player.y - actualRadius + 5);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-        }
-        
-        ctx.restore();
-    }
-
-    // Draw projectile (tear)
-    function drawProjectile(proj) {
-        if (proj.isHoming) {
-            // Homing missile - green with trail
-            ctx.save();
-            
-            // Trail effect
-            ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-            for (let i = 1; i <= 4; i++) {
-                const trailX = proj.x - proj.vx * i * 0.3;
-                const trailY = proj.y - proj.vy * i * 0.3;
-                ctx.beginPath();
-                ctx.arc(trailX, trailY, 6 - i, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            // Missile body
-            const angle = Math.atan2(proj.vy, proj.vx);
-            ctx.translate(proj.x, proj.y);
-            ctx.rotate(angle);
-            
-            // Missile shape
-            ctx.fillStyle = '#00FF00';
-            ctx.strokeStyle = '#00AA00';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(8, 0);
-            ctx.lineTo(-6, -4);
-            ctx.lineTo(-6, 4);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            // Exhaust flames
-            ctx.fillStyle = '#FFAA00';
-            ctx.beginPath();
-            ctx.moveTo(-6, -2);
-            ctx.lineTo(-10 - Math.random() * 3, 0);
-            ctx.lineTo(-6, 2);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.restore();
-        } else if (proj.isAK47) {
-            // AK-47 bullet - golden
-            ctx.fillStyle = '#FFD700';
-            ctx.strokeStyle = '#FF8C00';
-            ctx.lineWidth = 2;
-            
-            // Bullet shape
-            ctx.beginPath();
-            ctx.ellipse(proj.x, proj.y, 7, 3, Math.atan2(proj.vy, proj.vx), 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            
-            // Trail
-            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
-            for (let i = 1; i <= 3; i++) {
-                const trailX = proj.x - proj.vx * i * 0.5;
-                const trailY = proj.y - proj.vy * i * 0.5;
-                ctx.beginPath();
-                ctx.arc(trailX, trailY, 4 - i, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        } else {
-            // Normal tear
-            ctx.fillStyle = pentagramActive ? '#FF0000' : '#4ECDC4';
-            ctx.beginPath();
-            ctx.arc(proj.x, proj.y, pentagramActive ? 7 : 5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Highlight
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            ctx.beginPath();
-            ctx.arc(proj.x - 2, proj.y - 2, 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-    
-    // Draw enemy projectile
-    function drawEnemyProjectile(proj) {
-        const baseColor = proj.color || '#9b59b6';
-        const strokeColor = proj.color ? shadeColor(proj.color, -25) : '#6C3483';
-        const innerColor = proj.color ? shadeColor(proj.color, 40) : '#BB8FCE';
-        const radius = proj.radius ?? 6;
-        
-        ctx.fillStyle = baseColor;
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = 2;
-        
-        ctx.beginPath();
-        ctx.arc(proj.x, proj.y, radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        
-        // Inner glow
-        ctx.fillStyle = innerColor;
-        ctx.beginPath();
-        ctx.arc(proj.x - radius * 0.33, proj.y - radius * 0.33, radius * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-    }
 
     // Draw enemy
     function drawEnemy(enemy) {
@@ -1666,10 +1399,10 @@ export function createGame({
         helmets.forEach(helmet => drawHelmet(helmet));
         powerups.forEach(powerup => drawPowerup(powerup));
         particles.forEach(particle => drawParticle(particle));
-        enemyProjectiles.forEach(proj => drawEnemyProjectile(proj));
-        projectiles.forEach(proj => drawProjectile(proj));
+        enemyProjectiles.forEach(proj => drawEnemyProjectile(ctx, proj));
+        projectiles.forEach(proj => drawProjectile(ctx, proj, { pentagramActive }));
         enemies.forEach(enemy => drawEnemy(enemy));
-        drawPlayer();
+        drawPlayer(ctx, canvas, player, { pentagramActive });
         
         // Draw hitmarkers on top of everything
         hitmarkers.forEach(hitmarker => drawHitmarker(hitmarker));

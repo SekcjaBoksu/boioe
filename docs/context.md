@@ -1,8 +1,6 @@
 # Projekt: The Binding of Isaac – OE Edition
 
-## Architektura
-- `main.html` – struktura pełnoekranowej gry: płótno (`canvas`) w proporcjach 16:9, nakładka HUD, panel sterowania, menu startowe, ekran końcowy i warstwa odliczania.
-- `styles/main.css` – globalne style, odpowiedzialne za layout „overlay”, responsywne skalowanie płótna i cieniowanie interfejsu.
+- `styles/base.css` – layout globalny i ustawienia płótna; `styles/hud.css` – wygląd paska statystyk; `styles/overlays.css` – ekrany menu, game-over, countdown oraz przyciski.
 - `scripts/main.js` – punkt wejścia (ES module). Tworzy instancję gry (`createGame`), inicjuje kontroler menu (`createMenuController`) i zarządza przepływem: menu → odliczanie → start gry.
 - `scripts/core/game.js` – serce gry. Zapewnia funkcję `createGame`, która:
   - przechowuje stan gry (gracz, wrogowie, pociski, power-upy, licznik combo itp.),
@@ -10,6 +8,8 @@
   - renderuje scenę na płótnie 2D (`canvas`),
   - obsługuje wejście z klawiatury (WASD – ruch, strzałki/IJKL – strzał),
   - eksponuje metody `prepareForNewRun()`, `startRun()`, `getStats()` oraz `resize()`; dopasowuje płótno do rozdzielczości okna.
+- `scripts/core/renderers/player.js`, `scripts/core/renderers/projectiles.js` – czyste funkcje rysujące gracza i pociski (wykorzystywane w pętli renderu).
+- `scripts/core/utils/color.js` – pomocnicze operacje na kolorach.
 - `scripts/ui/menu.js` – kontroler menu i ekranów overlay: odczyt/walidacja high-score (`localStorage`), 3‑sekundowe odliczanie, przełączanie między menu a rozgrywką.
 - Struktura katalogów przygotowana do dalszej modularizacji (`scripts/core`, `scripts/entities`, `scripts/systems`, `scripts/ui`, `assets`). Aktualnie używane są katalogi `core`, `ui` oraz moduł główny.
 
