@@ -39,7 +39,7 @@ export function updateFly(enemy, { player, enemyProjectiles, createHitParticles 
                 color: '#e74c3c',
                 maxDistance: 660,
                 distanceTraveled: 0,
-                radius: 6,
+                radius: 10,
                 baseRadius: 6
             });
 

@@ -9,6 +9,7 @@
   - obsługuje wejście z klawiatury (WASD – ruch, strzałki/IJKL – strzał),
   - eksponuje metody `prepareForNewRun()`, `startRun()`, `getStats()` oraz `resize()`; dopasowuje płótno do rozdzielczości okna.
 - `scripts/core/renderers/player.js`, `scripts/core/renderers/projectiles.js` – czyste funkcje rysujące gracza i pociski (wykorzystywane w pętli renderu).
+- `scripts/entities/powerups/` – obsługa power-upów (losowanie dropów, efekty, rysowanie błyskawicy itp.).
 - `scripts/core/utils/color.js` – pomocnicze operacje na kolorach.
 - `scripts/ui/menu.js` – kontroler menu i ekranów overlay: odczyt/walidacja high-score (`localStorage`), 3‑sekundowe odliczanie, przełączanie między menu a rozgrywką.
 - Struktura katalogów przygotowana do dalszej modularizacji (`scripts/core`, `scripts/entities`, `scripts/systems`, `scripts/ui`, `assets`). Aktualnie używane są katalogi `core`, `ui` oraz moduł główny.

@@ -3,6 +3,12 @@ import { drawProjectile, drawEnemyProjectile } from './renderers/projectiles.js'
 import { createFly, updateFly, drawFly } from '../entities/enemies/fly.js';
 import { createShooter, updateShooter, drawShooter } from '../entities/enemies/shooter.js';
 import { createSpeeder, updateSpeeder, drawSpeeder } from '../entities/enemies/speeder.js';
+import {
+    drawPowerup,
+    maybeDropPowerupFromEnemy,
+    applyPowerupPickup,
+    tickPowerupEffects
+} from '../entities/powerups/powerups.js';
 
 export function createGame({
     canvas,
@@ -80,14 +86,12 @@ export function createGame({
     
     // Powerups
     let powerups = [];
-    let ak47Active = false;
-    let ak47Timer = 0;
-    let pentagramActive = false;
-    let pentagramTimer = 0;
-    let homingActive = false;
-    let homingTimer = 0;
-    let speedActive = false;
-    let speedTimer = 0;
+    const powerupEffects = {
+        ak47: { active: false, timer: 0 },
+        pentagram: { active: false, timer: 0 },
+        homing: { active: false, timer: 0 },
+        speed: { active: false, timer: 0 }
+    };
     
     // Dopamine mechanics
     let comboCount = 0;
@@ -431,176 +435,6 @@ export function createGame({
         ctx.restore();
     }
     
-    // Draw powerup
-    function drawPowerup(powerup) {
-        const x = powerup.x;
-        const y = powerup.y;
-        const floatOffset = Math.sin(Date.now() / 300) * 5;
-        const actualY = y + floatOffset;
-        
-        ctx.save();
-        
-        // Glow effect
-        if (powerup.type === 'ak47') {
-            ctx.shadowColor = '#FFD700';
-        } else if (powerup.type === 'pentagram') {
-            ctx.shadowColor = '#8B0000';
-        } else if (powerup.type === 'homing') {
-            ctx.shadowColor = '#00FF00';
-        } else if (powerup.type === 'speed') {
-            ctx.shadowColor = '#FFE066';
-        } else {
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-        }
-        ctx.shadowBlur = 20;
-        
-        if (powerup.type === 'ak47') {
-            // AK-47
-            const scale = 1.2;
-            
-            // Gun body
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(x - 15 * scale, actualY - 3 * scale, 30 * scale, 6 * scale);
-            
-            // Barrel
-            ctx.fillStyle = '#34495e';
-            ctx.fillRect(x + 10 * scale, actualY - 2 * scale, 10 * scale, 4 * scale);
-            
-            // Stock
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(x - 20 * scale, actualY - 5 * scale, 8 * scale, 10 * scale);
-            
-            // Magazine
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(x - 5 * scale, actualY + 3 * scale, 8 * scale, 10 * scale);
-            
-            // Gold accent
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(x - 12 * scale, actualY - 1 * scale, 20 * scale, 2 * scale);
-            
-            // "AK-47" text
-            ctx.shadowBlur = 5;
-            ctx.fillStyle = '#FFD700';
-            ctx.font = 'bold 10px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('AK-47', x, actualY - 20);
-            
-        } else if (powerup.type === 'pentagram') {
-            // Pentagram
-            const size = 25;
-            const rotation = Date.now() / 1000;
-            
-            ctx.translate(x, actualY);
-            ctx.rotate(rotation);
-            
-            // Outer circle
-            ctx.strokeStyle = '#8B0000';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(0, 0, size, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Pentagram star
-            ctx.fillStyle = '#FF0000';
-            ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-                const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-                const px = Math.cos(angle) * size * 0.8;
-                const py = Math.sin(angle) * size * 0.8;
-                if (i === 0) {
-                    ctx.moveTo(px, py);
-                } else {
-                    ctx.lineTo(px, py);
-                }
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            ctx.rotate(-rotation);
-            ctx.translate(-x, -actualY);
-            
-            // "PENTAGRAM" text
-            ctx.shadowBlur = 5;
-            ctx.fillStyle = '#FF0000';
-            ctx.font = 'bold 9px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('PENTAGRAM', x, actualY + 35);
-        } else if (powerup.type === 'homing') {
-            // HOMING MISSILES - samonaprowadzające pociski
-            const size = 20;
-            const rotation = Date.now() / 1000;
-            
-            ctx.translate(x, actualY);
-            ctx.rotate(rotation);
-            
-            // Target reticle circles
-            ctx.strokeStyle = '#00FF00';
-            ctx.lineWidth = 3;
-            for (let i = 1; i <= 3; i++) {
-                ctx.beginPath();
-                ctx.arc(0, 0, size * 0.3 * i, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-            
-            // Crosshair
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(-size, 0);
-            ctx.lineTo(size, 0);
-            ctx.moveTo(0, -size);
-            ctx.lineTo(0, size);
-            ctx.stroke();
-            
-            // Center dot
-            ctx.fillStyle = '#00FF00';
-            ctx.beginPath();
-            ctx.arc(0, 0, size * 0.2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.rotate(-rotation);
-            ctx.translate(-x, -actualY);
-            
-            // "HOMING" text
-            ctx.shadowBlur = 5;
-            ctx.fillStyle = '#00FF00';
-            ctx.font = 'bold 10px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('HOMING', x, actualY + 35);
-        } else if (powerup.type === 'speed') {
-            const size = 24;
-            const rotation = Math.sin(Date.now() / 200) * 0.2;
-
-            ctx.translate(x, actualY);
-            ctx.rotate(rotation);
-
-            ctx.fillStyle = '#FFE066';
-            ctx.strokeStyle = '#FFB703';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(-size * 0.25, -size * 0.45);
-            ctx.lineTo(size * 0.1, -size * 0.05);
-            ctx.lineTo(-size * 0.05, -size * 0.05);
-            ctx.lineTo(size * 0.25, size * 0.5);
-            ctx.lineTo(-size * 0.1, size * 0.1);
-            ctx.lineTo(size * 0.05, size * 0.1);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.rotate(-rotation);
-            ctx.translate(-x, -actualY);
-
-            ctx.shadowBlur = 6;
-            ctx.fillStyle = '#FFE066';
-            ctx.font = 'bold 10px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('SPEED', x, actualY + 32);
-        }
-        
-        ctx.restore();
-    }
-
     // Update player
     function updatePlayer() {
         // Movement
@@ -639,8 +473,8 @@ export function createGame({
         if (length === 0) return;
         
         // AK-47 stats
-        const speed = ak47Active ? projectileSpeed * 1.5 : projectileSpeed;
-        const damage = (ak47Active ? 2 : 1) * (pentagramActive ? 2 : 1);
+        const speed = powerupEffects.ak47.active ? projectileSpeed * 1.5 : projectileSpeed;
+        const damage = (powerupEffects.ak47.active ? 2 : 1) * (powerupEffects.pentagram.active ? 2 : 1);
         
         projectiles.push({
             x: player.x,
@@ -648,14 +482,14 @@ export function createGame({
             vx: (dirX / length) * speed,
             vy: (dirY / length) * speed,
             damage: damage,
-            isAK47: ak47Active,
-            isHoming: homingActive
+            isAK47: powerupEffects.ak47.active,
+            isHoming: powerupEffects.homing.active
         });
         
-        shootCooldown = ak47Active ? shootDelay * 0.5 : shootDelay;
+        shootCooldown = powerupEffects.ak47.active ? shootDelay * 0.5 : shootDelay;
         
         // Add heat (less heat with AK-47)
-        weaponHeat += ak47Active ? heatPerShot * 0.7 : heatPerShot;
+        weaponHeat += powerupEffects.ak47.active ? heatPerShot * 0.7 : heatPerShot;
         if (weaponHeat >= maxHeat) {
             weaponHeat = maxHeat;
             overheated = true;
@@ -937,27 +771,14 @@ export function createGame({
                         }
                         
                         // Speeders drop powerups!
-                        if (enemy.type === 'speeder') {
-                            const dropRand = Math.random();
-                            const powerupType = dropRand < 0.33 ? 'ak47' : dropRand < 0.66 ? 'pentagram' : 'speed';
-                            powerups.push({
-                                x: enemy.x,
-                                y: enemy.y,
-                                type: powerupType
+                        if (enemy.type === 'speeder' || enemy.type === 'shooter') {
+                            maybeDropPowerupFromEnemy({
+                                enemy,
+                                comboMultiplier,
+                                powerups,
+                                createTextPopup
                             });
-                            const popupText = powerupType === 'speed' ? 'SPEED BOOST!' : 'POWERUP!';
-                            createTextPopup(enemy.x, enemy.y + 20, popupText, '#00FF00', 18);
-                        }
-                        // Shooters drop homing missiles!
-                        else if (enemy.type === 'shooter') {
-                            powerups.push({
-                                x: enemy.x,
-                                y: enemy.y,
-                                type: 'homing'
-                            });
-                            createTextPopup(enemy.x, enemy.y + 20, 'HOMING!', '#00FF00', 18);
-                        }
-                        else {
+                        } else {
                             // Normal enemies spawn helmet with combo multiplier
                             const helmetsToSpawn = Math.floor(comboMultiplier);
                             for (let i = 0; i < helmetsToSpawn; i++) {
@@ -1009,36 +830,12 @@ export function createGame({
     
     // Update powerups
     function updatePowerups() {
-        // Update timers
-        if (ak47Active) {
-            ak47Timer--;
-            if (ak47Timer <= 0) {
-                ak47Active = false;
-            }
-        }
-        
-        if (pentagramActive) {
-            pentagramTimer--;
-            if (pentagramTimer <= 0) {
-                pentagramActive = false;
-            }
-        }
-        
-        if (homingActive) {
-            homingTimer--;
-            if (homingTimer <= 0) {
-                homingActive = false;
-            }
-        }
+        tickPowerupEffects({
+            powerupEffects,
+            player,
+            basePlayerSpeed: BASE_PLAYER_SPEED
+        });
 
-        if (speedActive) {
-            speedTimer--;
-            if (speedTimer <= 0) {
-                speedActive = false;
-                player.speed = BASE_PLAYER_SPEED;
-            }
-        }
-        
         // Combo timer decay
         if (comboTimer > 0) {
             comboTimer--;
@@ -1074,35 +871,21 @@ export function createGame({
             );
             
             if (dist < player.radius + 25) {
-                if (powerup.type === 'ak47') {
-                    ak47Active = true;
-                    ak47Timer = 600; // 10 seconds at 60fps
-                    createHitParticles(powerup.x, powerup.y, '#FFD700');
-                    createTextPopup(powerup.x, powerup.y, '🔫 AK-47!', '#FFD700', 25);
-                    screenShakeIntensity = 10;
-                    flashTimer = 15;
-                } else if (powerup.type === 'pentagram') {
-                    pentagramActive = true;
-                    pentagramTimer = 600; // 10 seconds
-                    createHitParticles(powerup.x, powerup.y, '#FF0000');
-                    createTextPopup(powerup.x, powerup.y, '😈 PENTAGRAM!', '#FF0000', 25);
-                    screenShakeIntensity = 10;
-                    flashTimer = 15;
-                } else if (powerup.type === 'homing') {
-                    homingActive = true;
-                    homingTimer = 600; // 10 seconds
-                    createHitParticles(powerup.x, powerup.y, '#00FF00');
-                    createTextPopup(powerup.x, powerup.y, '🎯 HOMING!', '#00FF00', 25);
-                    screenShakeIntensity = 10;
-                    flashTimer = 15;
-                } else if (powerup.type === 'speed') {
-                    speedActive = true;
-                    speedTimer = 600; // 10 seconds
-                    player.speed = BASE_PLAYER_SPEED * SPEED_MULTIPLIER;
-                    createHitParticles(powerup.x, powerup.y, '#FFD700');
-                    createTextPopup(powerup.x, powerup.y, '⚡ SPEED!', '#FFD700', 25);
-                    screenShakeIntensity = 6;
-                }
+                applyPowerupPickup({
+                    powerup,
+                    player,
+                    powerupEffects,
+                    createHitParticles,
+                    createTextPopup,
+                    setScreenShake: (value) => {
+                        screenShakeIntensity = Math.max(screenShakeIntensity, value);
+                    },
+                    setFlash: (value) => {
+                        flashTimer = Math.max(flashTimer, value);
+                    },
+                    basePlayerSpeed: BASE_PLAYER_SPEED,
+                    speedMultiplier: SPEED_MULTIPLIER
+                });
                 powerups.splice(index, 1);
             }
         });
@@ -1132,12 +915,12 @@ export function createGame({
         
         // Draw game objects
         helmets.forEach(helmet => drawHelmet(helmet));
-        powerups.forEach(powerup => drawPowerup(powerup));
+        powerups.forEach(powerup => drawPowerup(ctx, powerup));
         particles.forEach(particle => drawParticle(particle));
         enemyProjectiles.forEach(proj => drawEnemyProjectile(ctx, proj));
-        projectiles.forEach(proj => drawProjectile(ctx, proj, { pentagramActive }));
+        projectiles.forEach(proj => drawProjectile(ctx, proj, { pentagramActive: powerupEffects.pentagram.active }));
         enemies.forEach(enemy => drawEnemy(enemy));
-        drawPlayer(ctx, canvas, player, { pentagramActive, speedActive });
+        drawPlayer(ctx, canvas, player, { pentagramActive: powerupEffects.pentagram.active, speedActive: powerupEffects.speed.active });
         
         // Draw hitmarkers on top of everything
         hitmarkers.forEach(hitmarker => drawHitmarker(hitmarker));
@@ -1152,30 +935,30 @@ export function createGame({
         drawHeatGauge();
         
         // Draw powerup timers
-        if (ak47Active || pentagramActive || homingActive) {
+        if (powerupEffects.ak47.active || powerupEffects.pentagram.active || powerupEffects.homing.active) {
             ctx.fillStyle = 'white';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'left';
             
             let yOffset = 20;
-            if (ak47Active) {
-                const secondsLeft = Math.ceil(ak47Timer / 60);
+            if (powerupEffects.ak47.active) {
+                const secondsLeft = Math.ceil(powerupEffects.ak47.timer / 60);
                 ctx.fillStyle = '#FFD700';
                 ctx.shadowColor = '#FFD700';
                 ctx.shadowBlur = 10;
                 ctx.fillText(`🔫 AK-47: ${secondsLeft}s`, 10, yOffset);
                 yOffset += 25;
             }
-            if (pentagramActive) {
-                const secondsLeft = Math.ceil(pentagramTimer / 60);
+            if (powerupEffects.pentagram.active) {
+                const secondsLeft = Math.ceil(powerupEffects.pentagram.timer / 60);
                 ctx.fillStyle = '#FF0000';
                 ctx.shadowColor = '#FF0000';
                 ctx.shadowBlur = 10;
                 ctx.fillText(`😈 PENTAGRAM: ${secondsLeft}s`, 10, yOffset);
                 yOffset += 25;
             }
-            if (homingActive) {
-                const secondsLeft = Math.ceil(homingTimer / 60);
+            if (powerupEffects.homing.active) {
+                const secondsLeft = Math.ceil(powerupEffects.homing.timer / 60);
                 ctx.fillStyle = '#00FF00';
                 ctx.shadowColor = '#00FF00';
                 ctx.shadowBlur = 10;
@@ -1333,14 +1116,14 @@ export function createGame({
         
         weaponHeat = 0;
         overheated = false;
-        ak47Active = false;
-        ak47Timer = 0;
-        pentagramActive = false;
-        pentagramTimer = 0;
-        homingActive = false;
-        homingTimer = 0;
-        speedActive = false;
-        speedTimer = 0;
+        powerupEffects.ak47.active = false;
+        powerupEffects.ak47.timer = 0;
+        powerupEffects.pentagram.active = false;
+        powerupEffects.pentagram.timer = 0;
+        powerupEffects.homing.active = false;
+        powerupEffects.homing.timer = 0;
+        powerupEffects.speed.active = false;
+        powerupEffects.speed.timer = 0;
         
         comboCount = 0;
         comboTimer = 0;
