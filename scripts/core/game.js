@@ -445,6 +445,8 @@ export function createGame({
         if (keys['s']) dy += 1;
         if (keys['a']) dx -= 1;
         if (keys['d']) dx += 1;
+
+        player.isMoving = dx !== 0 || dy !== 0;
         
         // Normalize diagonal movement
         if (dx !== 0 && dy !== 0) {
@@ -920,7 +922,11 @@ export function createGame({
         enemyProjectiles.forEach(proj => drawEnemyProjectile(ctx, proj));
         projectiles.forEach(proj => drawProjectile(ctx, proj, { pentagramActive: powerupEffects.pentagram.active }));
         enemies.forEach(enemy => drawEnemy(enemy));
-        drawPlayer(ctx, canvas, player, { pentagramActive: powerupEffects.pentagram.active, speedActive: powerupEffects.speed.active });
+        drawPlayer(ctx, canvas, player, {
+            pentagramActive: powerupEffects.pentagram.active,
+            speedActive: powerupEffects.speed.active,
+            isMoving: player.isMoving
+        });
         
         // Draw hitmarkers on top of everything
         hitmarkers.forEach(hitmarker => drawHitmarker(hitmarker));

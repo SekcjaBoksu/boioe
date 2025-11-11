@@ -1,5 +1,5 @@
 export function drawPlayer(ctx, canvas, player, options = {}) {
-    const { pentagramActive = false, speedActive = false } = options;
+    const { pentagramActive = false, speedActive = false, isMoving = false } = options;
 
     ctx.save();
 
@@ -24,7 +24,7 @@ export function drawPlayer(ctx, canvas, player, options = {}) {
         }
     }
 
-    const walkCycle = Math.sin(Date.now() / 100) * 3;
+    const walkCycle = isMoving ? Math.sin(Date.now() / 100) * 3 : 0;
     const sizeMultiplier = pentagramActive ? 1.3 : 1;
     const actualRadius = player.radius * sizeMultiplier;
     const playerColor = pentagramActive ? '#8B0000' : player.color;
