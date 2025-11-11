@@ -1,5 +1,8 @@
 import { drawPlayer } from './renderers/player.js';
 import { drawProjectile, drawEnemyProjectile } from './renderers/projectiles.js';
+import { createFly, updateFly, drawFly } from '../entities/enemies/fly.js';
+import { createShooter, updateShooter, drawShooter } from '../entities/enemies/shooter.js';
+import { createSpeeder, updateSpeeder, drawSpeeder } from '../entities/enemies/speeder.js';
 
 export function createGame({
     canvas,
@@ -260,233 +263,26 @@ export function createGame({
     }
 
 
-    // Draw enemy
     function drawEnemy(enemy) {
         ctx.save();
-        
-        // Hit flash effect
+
         if (enemy.hitFlash && enemy.hitFlash > 0) {
             ctx.shadowColor = 'white';
             ctx.shadowBlur = 15;
             enemy.hitFlash--;
         }
-        
-        // Floating animation
+
         const float = Math.sin(Date.now() / 300 + enemy.x) * 2;
         const actualY = enemy.y + float;
-        
+
         if (enemy.type === 'shooter') {
-            // SHOOTER - fioletowy strzelający przeciwnik
-            
-            // Charging indicator
-            const chargePercent = (enemy.shootCooldown - enemy.shootTimer) / enemy.shootCooldown;
-            if (chargePercent > 0.7) {
-                const pulseSize = Math.sin(Date.now() / 50) * 3;
-                ctx.strokeStyle = `rgba(155, 89, 182, ${chargePercent})`;
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.arc(enemy.x, actualY, enemy.radius + 8 + pulseSize, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-            
-            // Warning lines when about to shoot
-            if (chargePercent > 0.85) {
-                ctx.strokeStyle = '#FF0000';
-                ctx.lineWidth = 2;
-                for (let i = 0; i < 4; i++) {
-                    const angle = (Math.PI * 2 * i) / 4 + Date.now() / 200;
-                    ctx.beginPath();
-                    ctx.moveTo(enemy.x, actualY);
-                    ctx.lineTo(
-                        enemy.x + Math.cos(angle) * 30,
-                        actualY + Math.sin(angle) * 30
-                    );
-                    ctx.stroke();
-                }
-            }
-            
-            // Body - gradient purple
-            const gradient = ctx.createRadialGradient(
-                enemy.x - 5, actualY - 5, 3,
-                enemy.x, actualY, enemy.radius
-            );
-            gradient.addColorStop(0, '#BB8FCE');
-            gradient.addColorStop(1, enemy.color);
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(enemy.x, actualY, enemy.radius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Border
-            ctx.strokeStyle = '#6C3483';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            
-            // Gun barrels (3 tubes)
-            ctx.fillStyle = '#2c3e50';
-            ctx.strokeStyle = '#1a1a1a';
-            ctx.lineWidth = 2;
-            
-            for (let i = -1; i <= 1; i++) {
-                const gunY = actualY + i * 6;
-                ctx.fillRect(enemy.x + enemy.radius - 5, gunY - 2, 12, 4);
-                ctx.strokeRect(enemy.x + enemy.radius - 5, gunY - 2, 12, 4);
-            }
-            
-            // Eyes (menacing)
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath();
-            ctx.arc(enemy.x - 5, actualY - 4, 5, 0, Math.PI * 2);
-            ctx.arc(enemy.x + 5, actualY - 4, 5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = '#8B0000';
-            ctx.beginPath();
-            ctx.arc(enemy.x - 5, actualY - 4, 2.5, 0, Math.PI * 2);
-            ctx.arc(enemy.x + 5, actualY - 4, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Antenna
-            ctx.strokeStyle = '#9b59b6';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(enemy.x, actualY - enemy.radius);
-            ctx.lineTo(enemy.x, actualY - enemy.radius - 8);
-            ctx.stroke();
-            
-            ctx.fillStyle = '#e74c3c';
-            ctx.beginPath();
-            ctx.arc(enemy.x, actualY - enemy.radius - 8, 3, 0, Math.PI * 2);
-            ctx.fill();
-            
+            drawShooter(ctx, enemy, actualY);
         } else if (enemy.type === 'speeder') {
-            // SPEEDER - szybki zielony przeciwnik
-        
-            // Energia/aura wokół speedera
-            const pulseSize = Math.sin(Date.now() / 100) * 3;
-            ctx.strokeStyle = 'rgba(46, 204, 113, 0.5)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(enemy.x, actualY, enemy.radius + 5 + pulseSize, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Speed lines (ślady ruchu)
-            ctx.strokeStyle = 'rgba(46, 204, 113, 0.3)';
-            ctx.lineWidth = 2;
-            for (let i = 1; i <= 3; i++) {
-                const offsetX = (player.x - enemy.x) * -0.1 * i;
-                const offsetY = (player.y - enemy.y) * -0.1 * i;
-                ctx.beginPath();
-                ctx.arc(enemy.x + offsetX, actualY + offsetY, enemy.radius - i, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-            
-            // Body
-            const gradient = ctx.createRadialGradient(
-                enemy.x - 5, actualY - 5, 3,
-                enemy.x, actualY, enemy.radius
-            );
-            gradient.addColorStop(0, '#A8E6CF');
-            gradient.addColorStop(1, enemy.color);
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(enemy.x, actualY, enemy.radius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Border
-            ctx.strokeStyle = '#27ae60';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Eyes (focused/aggressive)
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(enemy.x - 4, actualY - 3, 3, 0, Math.PI * 2);
-            ctx.arc(enemy.x + 4, actualY - 3, 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = '#FF0000';
-            ctx.beginPath();
-            ctx.arc(enemy.x - 4, actualY - 3, 1.5, 0, Math.PI * 2);
-            ctx.arc(enemy.x + 4, actualY - 3, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Lightning bolts around body
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 1.5;
-            const boltCount = 3;
-            for (let i = 0; i < boltCount; i++) {
-                const angle = (Math.PI * 2 * i) / boltCount + Date.now() / 100;
-                const startX = enemy.x + Math.cos(angle) * (enemy.radius + 2);
-                const startY = actualY + Math.sin(angle) * (enemy.radius + 2);
-                const endX = enemy.x + Math.cos(angle) * (enemy.radius + 8);
-                const endY = actualY + Math.sin(angle) * (enemy.radius + 8);
-                
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(endX, endY);
-                ctx.stroke();
-            }
-            
+            drawSpeeder(ctx, enemy, actualY, player);
         } else {
-            // NORMAL FLY - czerwony zwykły przeciwnik
-            
-            // Wings/tentacles
-            ctx.fillStyle = '#c0392b';
-            ctx.strokeStyle = '#8B0000';
-            ctx.lineWidth = 1;
-            
-            const wingFlap = Math.sin(Date.now() / 100) * 5;
-            
-            // Left wing
-            ctx.beginPath();
-            ctx.ellipse(enemy.x - enemy.radius + 3, actualY, 8, 4, -0.5 + wingFlap * 0.02, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            
-            // Right wing
-            ctx.beginPath();
-            ctx.ellipse(enemy.x + enemy.radius - 3, actualY, 8, 4, 0.5 - wingFlap * 0.02, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            
-            // Enemy body
-            ctx.fillStyle = enemy.color;
-            ctx.beginPath();
-            ctx.arc(enemy.x, actualY, enemy.radius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Border
-            ctx.strokeStyle = '#8B0000';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Eyes (angry)
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(enemy.x - 5, actualY - 3, 4, 0, Math.PI * 2);
-            ctx.arc(enemy.x + 5, actualY - 3, 4, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = 'red';
-            ctx.beginPath();
-            ctx.arc(enemy.x - 5, actualY - 3, 2, 0, Math.PI * 2);
-            ctx.arc(enemy.x + 5, actualY - 3, 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Angry eyebrows
-            ctx.strokeStyle = '#8B0000';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(enemy.x - 8, actualY - 7);
-            ctx.lineTo(enemy.x - 3, actualY - 5);
-            ctx.moveTo(enemy.x + 8, actualY - 7);
-            ctx.lineTo(enemy.x + 3, actualY - 5);
-            ctx.stroke();
+            drawFly(ctx, enemy, actualY);
         }
-        
+
         ctx.restore();
     }
 
@@ -967,51 +763,12 @@ export function createGame({
         
         const rand = Math.random();
         
-        // 5% szansa na strzelającego przeciwnika (rzadki!)
         if (rand < 0.05) {
-            enemies.push({
-                x: x,
-                y: y,
-                radius: 16,
-                speed: 0.8, // Wolniejszy
-                health: 5, // Więcej HP
-                color: '#9b59b6', // Fioletowy
-                type: 'shooter',
-                hitFlash: 0,
-                shootTimer: 0,
-                shootCooldown: 90, // czas między seriami
-                burstShotsRemaining: 0,
-                burstDelayTimer: 0,
-                burstSpacing: 8,
-                burstCount: 3
-            });
-        }
-        // 10% szansa na szybkiego zielonego przeciwnika
-        else if (rand < 0.15) {
-            enemies.push({
-                x: x,
-                y: y,
-                radius: 13,
-                speed: 2.5 + Math.random() * 1,
-                health: 2,
-                color: '#2ecc71',
-                type: 'speeder',
-                hitFlash: 0
-            });
+            enemies.push(createShooter(x, y));
+        } else if (rand < 0.15) {
+            enemies.push(createSpeeder(x, y));
         } else {
-            // Zwykły przeciwnik
-            enemies.push({
-                x: x,
-                y: y,
-                radius: 15,
-                speed: 1 + Math.random() * 0.5,
-                health: 3,
-                color: '#e74c3c',
-                type: 'fly',
-                hitFlash: 0,
-                shootTimer: Math.floor(Math.random() * 60),
-                shootCooldown: 120 + Math.floor(Math.random() * 60)
-            });
+            enemies.push(createFly(x, y));
         }
     }
 
@@ -1036,94 +793,12 @@ export function createGame({
         }
         
         enemies.forEach((enemy, eIndex) => {
-            // Shooter enemy AI
             if (enemy.type === 'shooter') {
-                enemy.shootTimer++;
-                
-                if (enemy.burstShotsRemaining > 0) {
-                    enemy.burstDelayTimer--;
-                    if (enemy.burstDelayTimer <= 0) {
-                        const dx = player.x - enemy.x;
-                        const dy = player.y - enemy.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        
-                        if (dist > 0) {
-                            const speed = 4.5;
-                            enemyProjectiles.push({
-                                x: enemy.x,
-                                y: enemy.y,
-                                vx: (dx / dist) * speed,
-                                vy: (dy / dist) * speed,
-                                damage: 1,
-                                radius: 6,
-                                baseRadius: 6
-                            });
-                            
-                            createHitParticles(enemy.x, enemy.y, '#9b59b6');
-                        }
-                        
-                        enemy.burstShotsRemaining--;
-                        enemy.burstDelayTimer = enemy.burstSpacing;
-                    }
-                } else if (enemy.shootTimer >= enemy.shootCooldown) {
-                    enemy.shootTimer = 0;
-                    enemy.burstShotsRemaining = enemy.burstCount;
-                    enemy.burstDelayTimer = 0;
-                }
-                
-                // Slower movement, try to keep distance
-                const dx = player.x - enemy.x;
-                const dy = player.y - enemy.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist > 0) {
-                    // Keep at medium distance
-                    if (dist < 150) {
-                        // Move away if too close
-                        enemy.x -= (dx / dist) * enemy.speed;
-                        enemy.y -= (dy / dist) * enemy.speed;
-                    } else if (dist > 250) {
-                        // Move closer if too far
-                        enemy.x += (dx / dist) * enemy.speed;
-                        enemy.y += (dy / dist) * enemy.speed;
-                    }
-                }
-            } else {
-                // Normal movement - chase player
-                const dx = player.x - enemy.x;
-                const dy = player.y - enemy.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist > 0) {
-                    enemy.x += (dx / dist) * enemy.speed;
-                    enemy.y += (dy / dist) * enemy.speed;
-                }
-
-                if (enemy.type === 'fly') {
-                    enemy.shootTimer++;
-                    if (enemy.shootTimer >= enemy.shootCooldown) {
-                        enemy.shootTimer = 0;
-                        enemy.shootCooldown = 120 + Math.floor(Math.random() * 60);
-
-                        if (dist > 0) {
-                            const speed = 3.2;
-                            enemyProjectiles.push({
-                                x: enemy.x,
-                                y: enemy.y,
-                                vx: (dx / dist) * speed,
-                                vy: (dy / dist) * speed,
-                                damage: 1,
-                                color: '#e74c3c',
-                                maxDistance: 660,
-                                distanceTraveled: 0,
-                                radius: 6,
-                                baseRadius: 6
-                            });
-
-                            createHitParticles(enemy.x, enemy.y, '#e74c3c');
-                        }
-                    }
-                }
+                updateShooter(enemy, { player, enemyProjectiles, createHitParticles });
+            } else if (enemy.type === 'speeder') {
+                updateSpeeder(enemy, { player });
+            } else if (enemy.type === 'fly') {
+                updateFly(enemy, { player, enemyProjectiles, createHitParticles });
             }
             
             // Check collision with player
